@@ -7,3 +7,4 @@ data/*
 !data/.gitkeep
 # Claude Code agent worktrees — never commit
 .claude/worktrees/
+__pycache__
