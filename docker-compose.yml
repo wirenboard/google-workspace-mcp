@@ -56,11 +56,14 @@ services:
       traefik.http.routers.gworkspacemcp.tls.certresolver: letsEncrypt
       com.centurylinklabs.watchtower.enable: "true"   # auto-update the image
     healthcheck:
-      # Upstream exposes no /health endpoint. This is a liveness check: curl
-      # without -f returns 0 for ANY HTTP response (even 404), failing only when
-      # the server is not accepting connections. For a stricter probe use the
-      # OAuth discovery path /.well-known/oauth-protected-resource with -f.
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://127.0.0.1:8000/"]
-      interval: 30m
+      # Fast, dependency-free liveness check. Traefik does NOT create a router for a
+      # container while its health is `starting`/`unhealthy`, so the check must turn
+      # healthy within seconds: a 30m interval or a missing start_period would keep
+      # the container in `starting` and Traefik would skip its router (default cert +
+      # 404). python is guaranteed in the base image and just opens a TCP connection
+      # to the server port (upstream exposes no dedicated /health endpoint).
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=3).close()"]
+      interval: 15s
       timeout: 5s
-      retries: 2
+      retries: 3
+      start_period: 30s
