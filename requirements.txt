@@ -1,0 +1,3 @@
+# The whole application is the pinned upstream MCP server package.
+# Bump this pin to upgrade; CI smoke-tests that it installs before building the image.
+workspace-mcp==1.22.0

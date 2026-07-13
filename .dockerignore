@@ -1,0 +1,8 @@
+.git
+.env
+data/
+.github/
+*.md
+.DS_Store
+Makefile
+docker-compose.yml

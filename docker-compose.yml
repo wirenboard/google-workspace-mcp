@@ -1,0 +1,66 @@
+# Deploy template — Google Workspace MCP server, remote multi-user (OAuth 2.1).
+# Pull the prebuilt image from ghcr.io — do NOT build on prod. Secrets live in
+# .env (gitignored); docker compose substitutes ${...} from it. The committed
+# file contains no real secrets.
+#
+# One Google OAuth "Internal" app serves the whole organization: each user
+# authorises once and the server stores their personal refresh token under the
+# data/ volume.
+#
+# IMAGE must equal your GitHub repo path: CI pushes to ghcr.io/<owner>/<repo>,
+# so override IMAGE in .env if your repo is not named as the default below.
+# The service also needs the shared external network docker_main_net (make net).
+
+volumes:
+  google_workspace_mcp:
+
+networks:
+  docker_main_net:
+    external: true
+
+services:
+  google_workspace_mcp:
+    image: ${IMAGE:-ghcr.io/wirenboard/google-workspace-mcp:latest}
+    container_name: google-workspace-mcp
+    restart: always
+    volumes:
+      - google_workspace_mcp:/app/data          # per-user OAuth token store; survives restart/update
+    environment:
+      # --- OAuth 2.1 multi-user mode -----------------------------------------
+      MCP_ENABLE_OAUTH21: "true"
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?set GOOGLE_OAUTH_CLIENT_ID in .env}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:?set GOOGLE_OAUTH_CLIENT_SECRET in .env}
+      # Public HTTPS base URL of this server (scheme + host). Must match the
+      # Traefik Host() below and the OAuth client's Authorized redirect URI,
+      # which is exactly  https://<WORKSPACE_DOMAIN>/oauth2callback
+      WORKSPACE_EXTERNAL_URL: https://${WORKSPACE_DOMAIN:?set WORKSPACE_DOMAIN in .env}
+      # --- Bind + transport ---------------------------------------------------
+      WORKSPACE_MCP_HOST: 0.0.0.0
+      WORKSPACE_MCP_PORT: "8000"
+      # Per-user tokens on the filesystem backend, under the data/ volume.
+      WORKSPACE_MCP_CREDENTIALS_DIR: /app/data/credentials
+      TZ: Europe/Moscow
+    networks:
+      - docker_main_net
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: 10m
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.gworkspacemcp.rule: Host(`${WORKSPACE_DOMAIN:?set WORKSPACE_DOMAIN in .env}`)
+      traefik.http.services.gworkspacemcp.loadBalancer.server.port: "8000"
+      traefik.http.routers.gworkspacemcp.entrypoints: websecure
+      traefik.http.routers.gworkspacemcp.tls: "true"
+      traefik.http.routers.gworkspacemcp.tls.certresolver: letsEncrypt
+      com.centurylinklabs.watchtower.enable: "true"   # auto-update the image
+    healthcheck:
+      # Upstream exposes no /health endpoint. This is a liveness check: curl
+      # without -f returns 0 for ANY HTTP response (even 404), failing only when
+      # the server is not accepting connections. For a stricter probe use the
+      # OAuth discovery path /.well-known/oauth-protected-resource with -f.
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://127.0.0.1:8000/"]
+      interval: 30m
+      timeout: 5s
+      retries: 2

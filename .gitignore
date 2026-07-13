@@ -1,0 +1,9 @@
+.env
+.DS_Store
+# Personal VS Code workspace file — not for the shared repo
+*.code-workspace
+logs/
+data/*
+!data/.gitkeep
+# Claude Code agent worktrees — never commit
+.claude/worktrees/
