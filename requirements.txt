@@ -1,3 +1,6 @@
 # The whole application is the pinned upstream MCP server package.
 # Bump this pin to upgrade; CI smoke-tests that it installs before building the image.
 workspace-mcp==1.22.0
+# Pin the transitive FastMCP too: the CIMD build patch (patches/disable_cimd.py)
+# targets the GoogleProvider(enable_cimd=...) signature of this exact version.
+fastmcp==3.4.4

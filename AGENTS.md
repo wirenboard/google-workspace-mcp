@@ -41,3 +41,7 @@ users connect) is in `README.md`.
 - The compose `IMAGE` must match the GitHub repo path (CI pushes
   ghcr.io/<owner>/<repo>); override it in `.env` if the repo is named differently.
   The service needs the shared external network `docker_main_net` (`make net`).
+- The image applies a build-time vendor patch (`patches/disable_cimd.py`) that
+  disables FastMCP CIMD so Claude Code uses DCR (toggle: `WORKSPACE_MCP_ENABLE_CIMD`).
+  The patch is self-verifying — a workspace-mcp bump that moves the call site fails
+  the build. Update the patch anchor when bumping the pinned version.

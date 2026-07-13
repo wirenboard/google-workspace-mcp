@@ -77,6 +77,19 @@ OAuth client is marked Trusted, no consent screen appears.
 Bump the pin in `requirements.txt` (e.g. `workspace-mcp==1.22.0` → newer), push
 to `main`; CI smoke-tests, builds and pushes `:latest`, and watchtower redeploys.
 
+## Claude Code & CIMD
+
+Claude Code 2.1.x is CIMD-first: if the server advertised
+`client_id_metadata_document_supported`, Claude would send
+`client_id=https://claude.ai/oauth/claude-code-client-metadata`, which this server
+cannot fetch through Cloudflare (302 to datacenter IPs) → 400 "unregistered client".
+So the image applies a build-time patch (`patches/disable_cimd.py`) that disables
+CIMD; Claude Code then uses Dynamic Client Registration (DCR), which works here.
+
+- Toggle with `WORKSPACE_MCP_ENABLE_CIMD` (default `false` = CIMD off).
+- A `workspace-mcp` version bump may require updating the patch — the build fails
+  loudly if the upstream call site changed (see `patches/README.md`).
+
 ## Security notes
 - The `data/` volume holds every user's Google **refresh token** — a
   high-value target. Restrict host access, back it up carefully, and consider

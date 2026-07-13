@@ -28,6 +28,10 @@ services:
     environment:
       # --- OAuth 2.1 multi-user mode -----------------------------------------
       MCP_ENABLE_OAUTH21: "true"
+      # Force DCR: our image disables FastMCP CIMD by default (see patches/disable_cimd.py)
+      # because Claude Code 2.1.x sends a claude.ai CIMD URL this server cannot fetch
+      # through Cloudflare. Set "true" only if that CIMD URL is reachable from this host.
+      WORKSPACE_MCP_ENABLE_CIMD: "false"
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?set GOOGLE_OAUTH_CLIENT_ID in .env}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:?set GOOGLE_OAUTH_CLIENT_SECRET in .env}
       # Public HTTPS base URL of this server (scheme + host). Must match the

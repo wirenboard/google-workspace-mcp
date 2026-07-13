@@ -7,6 +7,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Vendor patch: disable FastMCP CIMD so Claude Code falls back to DCR (its
+# claude.ai CIMD URL is unfetchable through Cloudflare). Self-verifying — the
+# build fails if the upstream call site moved. Toggle: WORKSPACE_MCP_ENABLE_CIMD.
+COPY patches/disable_cimd.py ./patches/disable_cimd.py
+RUN python patches/disable_cimd.py
+
 # Runtime state directory: the per-user OAuth token store lives under data/.
 RUN mkdir -p data
 
